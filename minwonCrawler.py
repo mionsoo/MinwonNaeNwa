@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup as bs
-import sqlite3
 import urllib.request as ul
 import requests
 import re
@@ -12,12 +11,15 @@ from collections import Counter,OrderedDict,ChainMap
 
 root_url = 'https://www.wetax.go.kr/main/'
 faq_each_page = 'https://www.wetax.go.kr/main/?cmd=LPTIAD0R1&faqDiv=@FAQPAGE@'
-navigate_url = root_page + '?cmd=LPTIIA1R1'
+navigate_url = root_url + '?cmd=LPTIIA1R1'
 
 class adict(dict):
     def __init__(self, *av, **kav):
         dict.__init__(self, *av, **kav)
         self.__dict__ = self
+
+def get_result():
+    return -1
 
 
 def get_soup(url):
@@ -47,11 +49,11 @@ def get_faqCategory(root_url):
 
     return pageDict
 
+
 if __name__ == '__main__':
-    df = df()
     soup = get_soup(navigate_url)
-    
-    category_list= soup.find_all("div",{"class":"council"})
+    category_list = soup.find_all("div",{"class":"council"})
+
     i = 2
     d = OrderedDict()
     list_= []
@@ -62,15 +64,14 @@ if __name__ == '__main__':
         
         d
         i+=1
-        
-    '''
+
     # get FAQ Categories page number dictionary
     pageDict = get_faqCategory(root_url)
     # get data from each page
     faq_page_url_list = [faq_each_page.replace('@FAQPAGE@', pageNum) for pageNum in pageDict.keys()]
     # get navigate each part page
-    navigate_url = root_page + '?cmd=LPTIIA1R1'
-
+    navigate_url = root_url + '?cmd=LPTIIA1R1'
+    '''
     soup = get_soup(navigate_url)
 
     # for page_url in faq_page_url_list:
