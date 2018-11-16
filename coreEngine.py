@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from flask import Flask,jsonify, make_response, request, send_file
 import time
 import io
@@ -12,8 +14,7 @@ class adict(dict):
         self.__dict__ = self
 
 def find_answerDB(hometax):
-
-    #TODO: change title, card text to data's Tax Category and Contents
+    #ToDo: change title, card text to data's Tax Category and Contents
     answer = "~입니다."
     data = '/home/gon/Pictures/unnamed.jpg'
     answer= {'fulfillmentText': answer,
@@ -25,12 +26,13 @@ def find_answerDB(hometax):
                  "imageUri": "http://203.253.21.85:8080/unnamed.jpg"}
          }]
              }
-
     return data,answer
 
 def find_answerCrawling(question):
+    #ToDo: need to searching question in FAQ page and return Answer
     answer = "~입니다."
     result = mc.get_result()
+    # 답변의 범위를 넘어서는 경우
     if result == -1:
         answer = cantFindAns()
     return answer
@@ -94,7 +96,7 @@ def get_requestParams(req):
 
 def coreEngine(req):
     data = ''
-    defaltAnswer= {}
+    answerForm= {}
 
     question,minwon_info,hometax = get_requestParams(req)
 
@@ -102,12 +104,11 @@ def coreEngine(req):
     if len(hometax) > 0:
         data, answer = find_answerDB(hometax)
     else:
-    #ToDo: need to searching question in FAQ page and return Answer
         answer = find_answerCrawling(question)
-    defaltAnswer.update(answer)
+    answerForm.update(answer)
 
 
-    return data,defaltAnswer
+    return data,answerForm
 
 if __name__ == '__main__':
     find_answerDB()
