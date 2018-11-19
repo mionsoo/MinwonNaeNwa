@@ -4,6 +4,7 @@ from flask import Flask,jsonify, make_response, request, send_file
 import time
 import io
 import minwonCrawler as mc
+from multiprocessing import Pool
 
 import base64
 app = Flask(__name__)
@@ -15,10 +16,10 @@ class adict(dict):
 
 def find_answerDB(hometax):
     #ToDo: change title, card text to data's Tax Category and Contents
-    answer = "~입니다."
+    answer=""
     data = '/home/gon/Pictures/unnamed.jpg'
-    answer= {'fulfillmentText': answer,
-     "fulfillmentMessages": [
+    answerForm= {'fulfillmentText': answer,
+        "fulfillmentMessages": [
          {
              "card": {
                  "title": "card title",
@@ -26,16 +27,19 @@ def find_answerDB(hometax):
                  "imageUri": "http://203.253.21.85:8080/unnamed.jpg"}
          }]
              }
-    return data,answer
+    return data,answerForm
 
 def find_answerCrawling(question):
     #ToDo: need to searching question in FAQ page and return Answer
-    answer = "~입니다."
-    result = mc.get_result()
+    #ToDo: make info response using db select Function
+    # answer = "~입니다."
+    # result = mc.get_result()
+    answer = mc.crawling_AnswerByQuestion(question)
+    answerForm = {'fulfillmentText': answer}
     # 답변의 범위를 넘어서는 경우
-    if result == -1:
-        answer = cantFindAns()
-    return answer
+    # if result == -1:
+    #     answer = cantFindAns()
+    return answerForm
 
 def cantFindAns():
     cont = [
@@ -94,21 +98,35 @@ def get_requestParams(req):
     hometax = req['queryResult']['parameters'].get('hometax')
     return question,minwon_info,hometax
 
+def get_intent(req):
+    intent = req["queryResult"]["intent"].get('displayName')
+    return intent
+
 def coreEngine(req):
     data = ''
     answerForm= {}
 
     question,minwon_info,hometax = get_requestParams(req)
+    intent = get_intent(req)
 
-    #ToDo: need to store chat data and searching data to db
-    if len(hometax) > 0:
+    if intent == "납부":
         data, answer = find_answerDB(hometax)
+    elif intent == "introduce_":
+        #ToDo: Make introduce response
+        pass
     else:
-        answer = find_answerCrawling(question)
+        answer = cantFindAns()
+
+    # else:
+    # need to speed up
+    #     answer = find_answerCrawling(question)
+    print(answer)
     answerForm.update(answer)
 
 
     return data,answerForm
 
 if __name__ == '__main__':
-    find_answerDB()
+    pass
+     # find_answerDB()
+

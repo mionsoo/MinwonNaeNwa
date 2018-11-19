@@ -2,22 +2,69 @@ from bs4 import BeautifulSoup as bs
 import urllib.request as ul
 import requests
 import re
-from pandas import DataFrame
+import time
+import sqlite3
+
+from pandas import DataFrame,Series
 from collections import Counter,OrderedDict,ChainMap
 
 
 'LPTIAD0R1'
 
 
-root_url = 'https://www.wetax.go.kr/main/'
+root_url = 'https://www.wetax.go.kr'
 faq_each_page = 'https://www.wetax.go.kr/main/?cmd=LPTIAD0R1&faqDiv=@FAQPAGE@'
 faq_url= "https://www.wetax.go.kr/main/?cmd=LPTIAD0R1&faqDiv=&faqField=&faqKeyword="
-navigate_url = root_url + '?cmd=LPTIIA1R1'
+navigate_url = root_url + '/main/?cmd=LPTIIA1R1'
 
 class adict(dict):
     def __init__(self, *av, **kav):
         dict.__init__(self, *av, **kav)
         self.__dict__ = self
+
+def saveCrawlingDataToDB():
+    soup = get_soup(navigate_url)
+    category_list = soup.find_all("div",{"class":"council"})
+
+    i = 0
+    nameList = []
+    categories_list = []
+    contents_list = []
+
+
+    for category_infos in category_list:
+
+        category_data = category_infos.find(["dl"])
+
+        nameList.append(category_infos.find("strong").get_text())
+        categories = category_data.find_all("dt")
+        category_contents = category_data.find_all("dd")
+        categories2 = [value.get_text() for value in categories if value.get_text() not in categories_list if value.get_text() != "세율"]
+
+        # asd = {categories_list.index(value):category_contents[categories_list.index(value)] for value in categories if categories_list[value.get_text()]}
+
+        categories_list = categories_list + categories2
+        asd = [(categories_list.index(value.get_text()), category_contents[idx].get_text()) for idx,value in enumerate(categories) if value.get_text() in categories_list]
+        contents_list = contents_list + [asd]
+
+
+
+    column = ["id","name"] + categories_list
+
+    df = DataFrame(columns=column)
+    for idx,val in enumerate(contents_list):
+        contents = [str("Null")] * (len(categories_list) + 2)
+        contents[0] = str(idx+1)
+        contents[1] = nameList[idx]
+        for v in val:
+            contents[v[0]+2] = v[1]
+
+        df = df.append(Series(contents,index=df.columns),ignore_index=True)
+        i+=1
+
+    conn = sqlite3.connect("minwon.db")
+
+    df.to_sql("minwon_info",conn,if_exists="append",index=False)
 
 def get_result():
     return -1
@@ -29,7 +76,8 @@ def get_soup(url):
     :param url: type (string), webpage url
     :return: soup
     """
-    return bs(requests.get(url).text,'html.parser')
+    # return bs(requests.get(url).text, 'html.parser')
+    return bs(requests.get(url).text,'lxml')
 
 def get_faqCategory(root_url):
     """
@@ -39,7 +87,7 @@ def get_faqCategory(root_url):
     :return: Dictionary { id : content, ... }
     """
     pageDict = {}
-    soup = get_soup(root_url+"?cmd=LPTIAD0R1")
+    soup = get_soup(root_url+"/main/?cmd=LPTIAD0R1")
     pagelist = soup.find("div", {"class": "list_search"}).find_all("option")
 
     for i in pagelist:
@@ -51,46 +99,37 @@ def get_faqCategory(root_url):
 
     return pageDict
 
+def crawling_AnswerByQuestion(question):
+    '''
+    make searching func at Faq using question
+    get first row answer by using user question search
+    :param question: type (string) , user input string
+    :return: answer string
+    '''
+    #ToDo: need to speed up (Dialogflow get response time limit is 5 sec but module elapse time is minimum 18 sec)
+    # search by question
+    start_vect = time.time()
+    soup = get_soup(faq_url + ul.quote(question, encoding='euc-kr'))
+    answerUrl = soup.find("ul", {"class": "faq"}).find("a")['href']
+    soup = get_soup(root_url + answerUrl)
+    answer = soup.find("dl", {"class": "w_view"}).find("pre").get_text()
+    print("Finished time: %0.2f Minutes" % ((time.time() - start_vect) / 60))
+    return answer
+
 if __name__ == '__main__':
-    #ToDo: make searching func at Faq using question
-    question="자동차세 연납 신청 방법이 어떻게 되나요?"
-    #search by keyword
-    soup = get_soup(faq_url+ul.quote(question,encoding='euc-kr'))
+
+    # question="자동차세 연납 신청 방법이 어떻게 되나요?"
 
 
 
 
-    # TODO: make sparse html data to database form
-    '''
-    soup = get_soup(navigate_url)
-    category_list = soup.find_all("div",{"class":"council"})
 
-    i = 3
-    list_= []
-    dict1 = {}
-    dict2 = {0:"id",1:"name"}
-    nameList = []
-    
-    for category_infos in category_list:
-        dict1[i] = category_infos.find("strong").get_text()
-        category_data = category_infos.find(["dl"])
-        asd = list(zip(category_data.find_all("dt"), category_data.find_all("dd")))
-        list_.append(asd)
 
-    category = [(idx,name) for idx,name in enumerate(nameList)]
-    for categ in category:
-        [categ[0],categ[1],list_[categ[0]]]
-        index = ["id","name"] + [col.get_text() for col in category_data.find_all("dt")]
 
-        # column = [category_infos.find("strong").get_text()] + [row.get_text() for row in category_data.find_all("dd")]
 
-    # get FAQ Categories page number dictionary
-    
-    # get data from each page
-    faq_page_url_list = [faq_each_page.replace('@FAQPAGE@', pageNum) for pageNum in pageDict.keys()]
-    # get navigate each part page
-    navigate_url = root_url + '?cmd=LPTIIA1R1'
-    '''
+
+
+
 
     '''
     soup = get_soup(navigate_url)
