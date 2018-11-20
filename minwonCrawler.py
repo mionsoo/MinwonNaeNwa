@@ -4,23 +4,13 @@ import requests
 import re
 import time
 import sqlite3
-
 from pandas import DataFrame,Series
-from collections import Counter,OrderedDict,ChainMap
-
-
-'LPTIAD0R1'
 
 
 root_url = 'https://www.wetax.go.kr'
 faq_each_page = 'https://www.wetax.go.kr/main/?cmd=LPTIAD0R1&faqDiv=@FAQPAGE@'
 faq_url= "https://www.wetax.go.kr/main/?cmd=LPTIAD0R1&faqDiv=&faqField=&faqKeyword="
 navigate_url = root_url + '/main/?cmd=LPTIIA1R1'
-
-class adict(dict):
-    def __init__(self, *av, **kav):
-        dict.__init__(self, *av, **kav)
-        self.__dict__ = self
 
 def saveCrawlingDataToDB():
     soup = get_soup(navigate_url)
@@ -116,32 +106,10 @@ def crawling_AnswerByQuestion(question):
     print("Finished time: %0.2f Minutes" % ((time.time() - start_vect) / 60))
     return answer
 
+
 if __name__ == '__main__':
+    pass
 
-    # question="자동차세 연납 신청 방법이 어떻게 되나요?"
-
-
-
-
-
-
-
-
-
-
-
-
-    '''
-    soup = get_soup(navigate_url)
-
-    # for page_url in faq_page_url_list:
-    #     print(page_url)
-    page_url = 'https://www.wetax.go.kr/main/?cmd=LPTIAD0R1&faqDiv=03'
-    soup = get_soup(page_url)
-    data = soup.find("ul",{"class":"faq"})
-    for idx, content in enumerate(data.find_all('a')):
-        content = re.sub('[\n\r\t]', '', .contents[0])
-    '''
 
 
 
