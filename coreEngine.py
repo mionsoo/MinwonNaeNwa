@@ -4,21 +4,131 @@ import minwonCrawler as mc
 import dbModule as db
 
 
-def check_Categories(datas):
+
+
+def makeAnswerForm(type, data_dict=None):
+    if type == 'default':
+        return {'fulfillmentText': data_dict["answer"]}
+    elif type == 'introduce':
+        return {"fulfillmentText": "저는 상담사의 업무를 조금이라도 줄여드리기 위해 생겨났습니다. \n세금에 대한 정보와 간단한 민원은 저에게 맡겨주세요.\n\n\n세금 정보를 알고싶으시면 \"취득세 알려줘 / 알려줄래?\"라고 물어봐 주세요.\n\n\n",
+         "payload": {"slack":{
+             "attachments": [
+                 {
+                     "footer": "Wetax",
+                     "fallback": "Required plain-text summary of the attachment.",
+                     "fields": [
+                         {
+                             "value": ":slack_call: (+82) *110번*",
+                             "short": True,
+                             "title": " 고객센터 번호"
+                         },
+                         {
+                             "value": ":clock930:  *07:00 ~ 23:30*",
+                             "short": True,
+                             "title": "위택스 신고·납부시간"
+                         },
+                         {
+                             "value": ":clock930:  *09:00 ~ 21:00*",
+                             "short": True,
+                             "title": "월 ~ 금 (공휴일 제외)"
+                         },
+                         {
+                             "value": ":clock930:  *09:00 ~ 13:00*",
+                             "short": True,
+                             "title": "토요일"
+                         }
+                     ],
+                     "pretext": "저는 상담사의 업무를 조금이라도 줄여드리기 위해 생겨났습니다. \n세금에 대한 정보와 간단한 민원은 저에게 맡겨주세요.:+1:\n\n\n세금 정보를 알고싶으시면 *\"취득세 알려줘 / 알려줄래?\"* 라고 물어봐 주세요.\n\n\n",
+                     "title": "Wetax 지방세 온라인 신고, 납부, 조회",
+                     "color": "#36a64f",
+                     "title_link": "https://www.wetax.go.kr/main/"
+                 }
+             ]
+         }}
+         }
+    elif type == 'db':
+        return {"fulfillmentText": data_dict["answer"],
+         "fulfillmentMessages": [
+             {
+                 "card": {
+                     "title": data_dict["name"],
+                     "subtitle": data_dict["answer"],
+                     "imageUri": "http://203.253.21.85:8080/info.png",
+                     "buttons": [{
+                         "text": data_dict["name"] + " " + data_dict["category"] + " link",
+                         "postback": "http://203.253.21.85:8080/info.png"
+                     }
+                     ]
+                 }
+             }],
+         "payload": {
+             "slack": {
+                 "text": data_dict["answer"],
+                 "attachments": [
+                     {
+                         "text": "*" + data_dict["category"] + "*",
+                         "image_url": "http://203.253.21.85:8080/info.png",
+                         "color": "#764FA5"
+                     }
+                 ]
+             }
+         }
+         }
+    else:
+        # Can't find answer
+        return {
+            "payload": {
+                "slack": {
+                    "attachments": [
+                        {
+                            "footer": "Wetax",
+                            "fallback": "Required plain-text summary of the attachment.",
+                            "fields": [
+                                {
+                                    "value": ":slack_call: (+82) *110번*",
+                                    "short": True,
+                                    "title": " 고객센터 번호"
+                                },
+                                {
+                                    "value": ":clock930:  *07:00 ~ 23:30*",
+                                    "short": True,
+                                    "title": "위택스 신고·납부시간"
+                                },
+                                {
+                                    "value": ":clock930:  *09:00 ~ 21:00*",
+                                    "short": True,
+                                    "title": "월 ~ 금 (공휴일 제외)"
+                                },
+                                {
+                                    "value": ":clock930:  *09:00 ~ 13:00*",
+                                    "short": True,
+                                    "title": "토요일"
+                                }
+                            ],
+                            "pretext": "제가 답변 드리기 어려운 질문이네요 :cry:\n고객센터로 연락 주시면 친철하게 상담해 드리겠습니다.\n\n\n",
+                            "title": "Wetax 지방세 온라인 신고, 납부, 조회",
+                            "color": "#36a64f",
+                            "title_link": "https://www.wetax.go.kr/main/",
+                            "ts": time.time()
+                        }
+                    ]
+                }
+            }
+        }
+
+
+def makeCategoriesAndDataListFromDB(datas):
     categories = ['id','name','과세대상', '납부방법', '납세의무자', '과세표준', '신고납부', '과세표준과 세율',
        '납세의무자, 과세표준 및 세율', '납기', '정의', '세율', '정보']
-
     return [(categories[i],v) for i,v in enumerate(datas[0]) if v != '']
 
 
-def find_answerDB(hometax):
+def toMakeAnswerFromDBdataList(categories):
+    answer = ''
     data = ''
-    data_path = ''
-    answer=''
-    print("hometax : ",hometax)
-
-    datas = db.selectNameFromTable(hometax)
-    categories = check_Categories(datas)
+    name = ''
+    info = ''
+    category =''
 
     for i in categories:
         if str(i[0]) == "name":
@@ -32,138 +142,45 @@ def find_answerDB(hometax):
             else:
                 answer = answer + "*" + str(i[0]) + "*" + "\n" + str(i[1]) + "\n\n"
 
-    answer = "*"+name+"*"+" 에 대한 정보는 다음과 같습니다.\n" + info + "\n\n" + answer
+    return [name,info, data,category,answer]
 
 
-    if len(data) > 0:
-        data_path = 'pic/'+ data
-        answerForm= {"fulfillmentText": answer,
-            "fulfillmentMessages": [
-             {
-                 "card": {
-                     "title": name ,
-                     "subtitle": answer,
-                     "imageUri": "http://203.253.21.85:8080/info.png",
-                     "buttons":[{
-                         "text":name+" "+category+" link",
-                         "postback":"http://203.253.21.85:8080/info.png"
-                     }
-                     ]
-                 }
-             }],
-            "payload":{
-                "slack":{
-                    "text": answer,
-                    "attachments": [
-                        {
-                            "text": "*"+category+"*",
-                            "image_url": "http://203.253.21.85:8080/info.png",
-                            "color": "#764FA5"
-                        }
-                    ]
-                }
-            }
-        }
+def find_answerDB(hometax):
+    data_path = ''
+    datas = db.selectNameFromTable(hometax)
+    if datas == []:
+        # Answer is not in db
+        return data_path,makeAnswerForm('default', data_dict={"answer": "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
 
+    categories = makeCategoriesAndDataListFromDB(datas)
+    values = toMakeAnswerFromDBdataList(categories)
+    keys = ["name", "info", "data", "category", "answer"]
+    data_dict = {k: v for k, v in zip(keys,values)}
+
+    data_dict["answer"] = "*" + data_dict["name"] + "*" + " 에 대한 정보는 다음과 같습니다.\n\n" + data_dict["info"] \
+                          + "\n\n" + data_dict["answer"] + "\n\n" + " 원하시는 답변이 맞으신가요? :thinking_face:"
+
+    if len(data_dict["data"]) > 0:
+        data_path = 'pic/' + data_dict["data"]
+        answerForm = makeAnswerForm("db", data_dict=data_dict)
     else:
-        answerForm = {'fulfillmentText': answer}
+        answerForm = makeAnswerForm('default', data_dict=data_dict)
 
     return data_path,answerForm
 
 
+
 def introduce_myself():
-    answer = { "fulfillmentText":"저는 상담사의 업무를 조금이라도 줄여드리기 위해 생겨났습니다. \n세금에 대한 정보와 간단한 민원은 저에게 맡겨주세요. \n",
-        "payload":{
-        "attachments": [
-            {
-                "footer": "Wetax",
-                "fallback": "Required plain-text summary of the attachment.",
-                "fields": [
-                    {
-                        "value": ":slack_call: (+82) *110번*",
-                        "short": True,
-                        "title": " 고객센터 번호"
-                    },
-                    {
-                        "value": ":clock930:  *07:00 ~ 23:30*",
-                        "short": True,
-                        "title": "위택스 신고·납부시간"
-                    },
-                    {
-                        "value": ":clock930:  *09:00 ~ 21:00*",
-                        "short": True,
-                        "title": "월 ~ 금 (공휴일 제외)"
-                    },
-                    {
-                        "value": ":clock930:  *09:00 ~ 13:00*",
-                        "short": True,
-                        "title": "토요일"
-                    }
-                ],
-                "pretext": "저는 상담사의 업무를 조금이라도 줄여드리기 위해 생겨났습니다 :smile:\n세금에 대한 정보와 간단한 민원은 저에게 맡겨주세요 :+1: \n",
-                "title": "Wetax 지방세 온라인 신고, 납부, 조회",
-                "color": "#36a64f",
-                "title_link": "https://www.wetax.go.kr/main/"
-            }
-        ]
-    }
-    }
+    return makeAnswerForm("introduce")
 
-    return answer
-
-
-def find_answerCrawling(question):
-    #ToDo: need to searching question in FAQ page and return Answer
-    #ToDo: make info response using db select Function
-
+def findAnswerFromCrawler(question):
     answer = mc.crawling_AnswerByQuestion(question)
-    answerForm = {'fulfillmentText': answer}
-
-    return answerForm
+    answer = answer + "\n\n 제공해드린 답변이 도움이 되었나요? :thinking_face:\n원치 않는 답변이라면 *\"아니야\"* 라고 답변해주세요"
+    return {'fulfillmentText': answer}
 
 
 def cantFindAns():
-    answer = {
-        "payload": {
-            "slack": {
-                "attachments": [
-                    {
-                        "footer": "Wetax",
-                        "fallback": "Required plain-text summary of the attachment.",
-                        "fields": [
-                            {
-                                "value": ":slack_call: (+82) *110번*",
-                                "short": True,
-                                "title": " 고객센터 번호"
-                            },
-                            {
-                                "value": ":clock930:  *07:00 ~ 23:30*",
-                                "short": True,
-                                "title": "위택스 신고·납부시간"
-                            },
-                            {
-                                "value": ":clock930:  *09:00 ~ 21:00*",
-                                "short": True,
-                                "title": "월 ~ 금 (공휴일 제외)"
-                            },
-                            {
-                                "value": ":clock930:  *09:00 ~ 13:00*",
-                                "short": True,
-                                "title": "토요일"
-                            }
-                        ],
-                        "pretext": "제가 답변 드리기 어려운 질문이네요 :cry:\n고객센터로 연락 주시면 친철하게 상담해 드리겠습니다.",
-                        "title": "Wetax 지방세 온라인 신고, 납부, 조회",
-                        "color": "#36a64f",
-                        "title_link": "https://www.wetax.go.kr/main/",
-                        "ts": time.time()
-                    }
-                ]
-            }
-        }
-    }
-
-    return answer
+    return makeAnswerForm('')
 
 
 def get_requestParams(req):
@@ -174,24 +191,42 @@ def get_requestParams(req):
 
 
 def get_intent(req):
-    intent = req["queryResult"]["intent"].get('displayName')
-    return intent
+    return req["queryResult"]["intent"].get('displayName')
+def getQuestion(question):
+    question = question
 
 
-def coreEngine(req):
+def coreEngine(req,Question):
     data = ''
     answerForm= {}
-    print(req)
     question, minwon_info, hometax = get_requestParams(req)
-    print(question,minwon_info,hometax)
+    Question.setInitial(question)
     intent = get_intent(req)
+
+    print(req)
+    print(question,minwon_info,hometax)
     print("intent : ",intent)
 
-    if intent == "hometax_info":
-        data, answer = find_answerDB(hometax)
-    elif intent == "introduce":
+    # split intent follow string -> "intent - follow up type"
+    intent_followUp= intent.split(" - ")
+    print("followup :",intent_followUp)
+    if intent_followUp[0] == "hometax_info":
+
+        try:
+            intent_followUp[1]
+        except:
+            data,answer = find_answerDB(hometax)
+        else:
+            if intent_followUp[1] == "no":
+                answer = findAnswerFromCrawler(question)
+                before_question = ''
+                # answer = makeAnswerForm('default', data_dict={"answer": "제공해드린 답변이 도움이 되었나요? :thinking_face:"})
+
+    elif intent_followUp[0] == "introduce":
+        print("three")
         answer = introduce_myself()
     else:
+        print("four")
         answer = cantFindAns()
 
     # else:

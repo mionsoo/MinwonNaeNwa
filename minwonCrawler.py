@@ -56,10 +56,6 @@ def saveCrawlingDataToDB():
 
     df.to_sql("minwon_info",conn,if_exists="append",index=False)
 
-def get_result():
-    return -1
-
-
 def get_soup(url):
     """
     get html response at url and make soup
@@ -89,6 +85,8 @@ def get_faqCategory(root_url):
 
     return pageDict
 
+
+
 def crawling_AnswerByQuestion(question):
     '''
     make searching func at Faq using question
@@ -98,13 +96,19 @@ def crawling_AnswerByQuestion(question):
     '''
     #ToDo: need to speed up (Dialogflow get response time limit is 5 sec but module elapse time is minimum 18 sec)
     # search by question
-    start_vect = time.time()
+    crawler_startTimevect = time.time()
+    timeout = time.time() + 60*5
+
+
     soup = get_soup(faq_url + ul.quote(question, encoding='euc-kr'))
     answerUrl = soup.find("ul", {"class": "faq"}).find("a")['href']
     soup = get_soup(root_url + answerUrl)
+    print("1")
+
+    faq_question = soup.find("dl", {"class": "w_view"}).find("strong").get_text()
     answer = soup.find("dl", {"class": "w_view"}).find("pre").get_text()
-    print("Finished time: %0.2f Minutes" % ((time.time() - start_vect) / 60))
-    return answer
+    print("Finished time: %0.2f Minutes" % ((time.time() - crawler_startTimevect) / 60))
+    return "질문 검색결과와 유사한 FAQ :\n" + faq_question + "\n\nFAQ답변 :\n" + answer
 
 
 if __name__ == '__main__':
