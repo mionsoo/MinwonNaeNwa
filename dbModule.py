@@ -20,12 +20,11 @@ def create_table():
 
 def selectNameFromTable(name):
     conn = get_Cursor()
-    query = "SELECT * FROM minwon_infomation WHERE name = " + "'" + name+ "';"
+    query = "SELECT * FROM minwon_infomation WHERE name = " + "'" + name + "';"
     print("query : ",query)
     try:
         conn.execute(query)
         all_rows = conn.fetchall()
-
         return [data for data in all_rows]
     finally:
         conn.close()

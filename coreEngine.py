@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
-import minwonCrawler as mc
-import dbModule as db
-
-
+import minwonCrawler as mC
+import dbModule as dB
 
 
 def makeAnswerForm(type, data_dict=None):
@@ -120,7 +118,7 @@ def makeAnswerForm(type, data_dict=None):
 def makeCategoriesAndDataListFromDB(datas):
     categories = ['id','name','과세대상', '납부방법', '납세의무자', '과세표준', '신고납부', '과세표준과 세율',
        '납세의무자, 과세표준 및 세율', '납기', '정의', '세율', '정보']
-    return [(categories[i],v) for i,v in enumerate(datas[0]) if v != '']
+    return [(categories[i], v) for i, v in enumerate(datas[0]) if v != '']
 
 
 def toMakeAnswerFromDBdataList(categories):
@@ -128,14 +126,14 @@ def toMakeAnswerFromDBdataList(categories):
     data = ''
     name = ''
     info = ''
-    category =''
+    category = ''
 
     for i in categories:
         if str(i[0]) == "name":
             name = i[1]
         if str(i[0]) == "정보":
             info = i[1]
-        if (str(i[0]) != "id") and (str(i[0]) != "name") and (str(i[0]) !="정보"):
+        if (str(i[0]) != "id") and (str(i[0]) != "name") and (str(i[0]) != "정보"):
             if str(i[1])[-3:] == "png":
                 data = i[1]
                 category = i[0]
@@ -145,12 +143,13 @@ def toMakeAnswerFromDBdataList(categories):
     return [name,info, data,category,answer]
 
 
-def find_answerDB(hometax):
+def find_answerDB(hometax,Question):
     data_path = ''
-    datas = db.selectNameFromTable(hometax)
+    datas = dB.selectNameFromTable(hometax)
     if datas == []:
         # Answer is not in db
-        return data_path,makeAnswerForm('default', data_dict={"answer": "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
+        Question.questionValue(Question.__question)
+        return data_path,makeAnswerForm('default', data_dict={"answer" : "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
 
     categories = makeCategoriesAndDataListFromDB(datas)
     values = toMakeAnswerFromDBdataList(categories)
@@ -169,17 +168,17 @@ def find_answerDB(hometax):
     return data_path,answerForm
 
 
-
 def introduce_myself():
     return makeAnswerForm("introduce")
 
+
 def findAnswerFromCrawler(question):
-    answer = mc.crawling_AnswerByQuestion(question)
+    answer = mC.crawling_AnswerByQuestion(question)
     answer = answer + "\n\n 제공해드린 답변이 도움이 되었나요? :thinking_face:\n원치 않는 답변이라면 *\"아니야\"* 라고 답변해주세요"
     return {'fulfillmentText': answer}
 
 
-def cantFindAns():
+def cantFindAnswer():
     return makeAnswerForm('')
 
 
@@ -187,54 +186,45 @@ def get_requestParams(req):
     question = req['queryResult'].get('queryText')
     minwon_info = req['queryResult']['parameters'].get('minwon-infomation')
     hometax = req['queryResult']['parameters'].get('hometax')
-    return question,minwon_info,hometax
+    return question, minwon_info, hometax
 
 
 def get_intent(req):
     return req["queryResult"]["intent"].get('displayName')
-def getQuestion(question):
-    question = question
 
 
-def coreEngine(req,Question):
+def coreEngine(req, Question):
     data = ''
-    answerForm= {}
+    answerForm = {}
     question, minwon_info, hometax = get_requestParams(req)
     Question.setInitial(question)
     intent = get_intent(req)
 
-    print(req)
-    print(question,minwon_info,hometax)
-    print("intent : ",intent)
+    # print(req)
+    # print(question,minwon_info,hometax)
+    # print("intent : ",intent)
 
     # split intent follow string -> "intent - follow up type"
-    intent_followUp= intent.split(" - ")
-    print("followup :",intent_followUp)
-    if intent_followUp[0] == "hometax_info":
-
+    intent_followup = intent.split(" - ")
+    if intent_followup[0] == "hometax_info":
         try:
-            intent_followUp[1]
+            intent_followup[1]
         except:
-            data,answer = find_answerDB(hometax)
+            data, answer = find_answerDB(hometax, Question)
         else:
-            if intent_followUp[1] == "no":
+            if intent_followup[1] == "no":
+                if Question.before_question == '':
+                    question = Question.beforeQuestion
                 answer = findAnswerFromCrawler(question)
-                before_question = ''
+                Question.setBeforeQuestionInitial()
                 # answer = makeAnswerForm('default', data_dict={"answer": "제공해드린 답변이 도움이 되었나요? :thinking_face:"})
 
-    elif intent_followUp[0] == "introduce":
-        print("three")
+    elif intent_followup[0] == "introduce":
         answer = introduce_myself()
     else:
-        print("four")
-        answer = cantFindAns()
+        answer = cantFindAnswer()
 
-    # else:
-    # need to speed up
-    #     answer = find_answerCrawling(question)
-    print("answer : ",answer)
     answerForm.update(answer)
-
     return data,answerForm
 
 

@@ -53,7 +53,6 @@ def saveCrawlingDataToDB():
         i+=1
 
     conn = sqlite3.connect("minwon.db")
-
     df.to_sql("minwon_info",conn,if_exists="append",index=False)
 
 def get_soup(url):
@@ -62,7 +61,6 @@ def get_soup(url):
     :param url: type (string), webpage url
     :return: soup
     """
-    # return bs(requests.get(url).text, 'html.parser')
     return bs(requests.get(url).text,'lxml')
 
 def get_faqCategory(root_url):
@@ -94,16 +92,13 @@ def crawling_AnswerByQuestion(question):
     :param question: type (string) , user input string
     :return: answer string
     '''
-    #ToDo: need to speed up (Dialogflow get response time limit is 5 sec but module elapse time is minimum 18 sec)
+    #ToDo: need to speed up more
     # search by question
     crawler_startTimevect = time.time()
-    timeout = time.time() + 60*5
-
 
     soup = get_soup(faq_url + ul.quote(question, encoding='euc-kr'))
     answerUrl = soup.find("ul", {"class": "faq"}).find("a")['href']
     soup = get_soup(root_url + answerUrl)
-    print("1")
 
     faq_question = soup.find("dl", {"class": "w_view"}).find("strong").get_text()
     answer = soup.find("dl", {"class": "w_view"}).find("pre").get_text()

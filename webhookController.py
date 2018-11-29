@@ -5,6 +5,7 @@ import coreEngine
 
 app = Flask(__name__)
 
+
 class Question:
     def __init__(self):
         self.__question = ''
@@ -12,6 +13,9 @@ class Question:
 
     def setInitial(self,question):
         self.__question = question
+
+    def setBeforeQuestionInitial(self):
+        self.beforeQuestion = ''
 
     @property
     def questionValue(self):
@@ -27,12 +31,11 @@ class Minwon:
     def __init__(self):
         self.img_path = ''
 
+
 @app.route('/webhook', methods=['POST', 'GET'])
 def webhookController():
-
     req = request.get_json(force=True)
     Minwon.img_path,res = coreEngine.coreEngine(req,Question)
-
     return make_response(json.dumps(res))
 
 
