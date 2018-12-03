@@ -5,6 +5,12 @@ import dbModule as dB
 
 
 def makeAnswerForm(type, data_dict=None):
+    '''
+
+    :param type:
+    :param data_dict:
+    :return:
+    '''
     if type == 'default':
         return {'fulfillmentText': data_dict["answer"]}
     elif type == 'introduce':
@@ -72,6 +78,46 @@ def makeAnswerForm(type, data_dict=None):
              }
          }
          }
+    elif type == "noAnsFAQ":
+        return {
+            "payload": {
+                "slack": {
+                    "attachments": [
+                        {
+                            "footer": "Wetax",
+                            "fallback": "Required plain-text summary of the attachment.",
+                            "fields": [
+                                {
+                                    "value": ":slack_call: (+82) *110번*",
+                                    "short": True,
+                                    "title": " 고객센터 번호"
+                                },
+                                {
+                                    "value": ":clock930:  *07:00 ~ 23:30*",
+                                    "short": True,
+                                    "title": "위택스 신고·납부시간"
+                                },
+                                {
+                                    "value": ":clock930:  *09:00 ~ 21:00*",
+                                    "short": True,
+                                    "title": "월 ~ 금 (공휴일 제외)"
+                                },
+                                {
+                                    "value": ":clock930:  *09:00 ~ 13:00*",
+                                    "short": True,
+                                    "title": "토요일"
+                                }
+                            ],
+                            "pretext": "FAQ에서 검색 결과가 없다고 하네요 :cry:\n고객센터로 연락 주시면 친철하게 상담해 드리겠습니다.\n\n\n",
+                            "title": "Wetax 지방세 온라인 신고, 납부, 조회",
+                            "color": "#36a64f",
+                            "title_link": "https://www.wetax.go.kr/main/",
+                            "ts": time.time()
+                        }
+                    ]
+                }
+            }
+        }
     else:
         # Can't find answer
         return {
@@ -143,13 +189,14 @@ def toMakeAnswerFromDBdataList(categories):
     return [name,info, data,category,answer]
 
 
-def find_answerDB(hometax,Question):
+def find_answerDB(hometax,question):
     data_path = ''
-    datas = dB.selectNameFromTable(hometax)
+    datas = dB.selectNameFromTable("minwon_infomation","name",hometax)
+    dB.insertDataToTable(question)
     if datas == []:
         # Answer is not in db
-        Question.questionValue(Question.__question)
-        return data_path,makeAnswerForm('default', data_dict={"answer" : "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
+
+        return data_path,makeAnswerForm('default', data_dict={"answer": "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
 
     categories = makeCategoriesAndDataListFromDB(datas)
     values = toMakeAnswerFromDBdataList(categories)
@@ -174,8 +221,11 @@ def introduce_myself():
 
 def findAnswerFromCrawler(question):
     answer = mC.crawling_AnswerByQuestion(question)
-    answer = answer + "\n\n 제공해드린 답변이 도움이 되었나요? :thinking_face:\n원치 않는 답변이라면 *\"아니야\"* 라고 답변해주세요"
-    return {'fulfillmentText': answer}
+    if answer == -1:
+        return makeAnswerForm("noAnsFAQ")
+    else:
+        answer = answer + "\n\n 제공해드린 답변이 도움이 되었나요? :thinking_face:\n원치 않는 답변이라면 *\"아니야\"* 라고 답변해주세요"
+        return {'fulfillmentText': answer}
 
 
 def cantFindAnswer():
@@ -193,16 +243,20 @@ def get_intent(req):
     return req["queryResult"]["intent"].get('displayName')
 
 
-def coreEngine(req, Question):
+def coreEngine(req):
+    # Init
     data = ''
     answerForm = {}
-    question, minwon_info, hometax = get_requestParams(req)
-    Question.setInitial(question)
-    intent = get_intent(req)
+    before_question = ' '
 
-    # print(req)
-    # print(question,minwon_info,hometax)
-    # print("intent : ",intent)
+
+    # Parsing
+    question, minwon_info, hometax = get_requestParams(req)
+    intent = get_intent(req)
+    print("question : ",question)
+    print("minwon_info : ",minwon_info)
+    print("hometax : ",hometax)
+    print("intent : ",intent)
 
     # split intent follow string -> "intent - follow up type"
     intent_followup = intent.split(" - ")
@@ -210,13 +264,26 @@ def coreEngine(req, Question):
         try:
             intent_followup[1]
         except:
-            data, answer = find_answerDB(hometax, Question)
+            data, answer = find_answerDB(hometax, question)
         else:
             if intent_followup[1] == "no":
-                if Question.before_question == '':
-                    question = Question.beforeQuestion
-                answer = findAnswerFromCrawler(question)
-                Question.setBeforeQuestionInitial()
+                try:
+                    data = dB.selectNameFromTable("question_table", "id", 0)
+                    before_question = data[len(data)-1][1]
+                except IndexError:
+                    before_question = -1
+                except:
+                    before_question = data[len(data)][1]
+                finally:
+                    if before_question == -1:
+                        answer = cantFindAnswer()
+                    elif before_question != ' ':
+                        print(before_question)
+                        answer = findAnswerFromCrawler(before_question)
+                    else:
+                        answer = findAnswerFromCrawler(question)
+
+                dB.deleteDataFromTable()
                 # answer = makeAnswerForm('default', data_dict={"answer": "제공해드린 답변이 도움이 되었나요? :thinking_face:"})
 
     elif intent_followup[0] == "introduce":

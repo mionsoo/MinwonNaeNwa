@@ -96,7 +96,17 @@ def crawling_AnswerByQuestion(question):
     # search by question
     crawler_startTimevect = time.time()
 
+    print("asdf",question)
+    print("asd",type(question))
     soup = get_soup(faq_url + ul.quote(question, encoding='euc-kr'))
+    faq_page = soup.find("ul", {"class": "faq"})
+
+    try:
+        if faq_page.find("li",{"class":"data_no"}).get_text() == '검색결과가 없습니다.':
+            return -1
+    except AttributeError:
+        pass
+
     answerUrl = soup.find("ul", {"class": "faq"}).find("a")['href']
     soup = get_soup(root_url + answerUrl)
 

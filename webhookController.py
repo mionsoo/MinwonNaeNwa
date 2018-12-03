@@ -5,26 +5,26 @@ import coreEngine
 
 app = Flask(__name__)
 
-
 class Question:
     def __init__(self):
-        self.__question = ''
+        self.question = ''
         self.beforeQuestion = ''
 
-    def setInitial(self,question):
-        self.__question = question
+    def setInitial(self, _question):
+        self.question = _question
 
     def setBeforeQuestionInitial(self):
         self.beforeQuestion = ''
 
     @property
     def questionValue(self):
-        return self.__question
+        return self.question
 
     @questionValue.setter
-    def questionValue(self,new_question):
-        self.beforeQuestion = self.__question
-        self.__question = new_question
+    def questionValue(self, new_question):
+        self.beforeQuestion = "asd"
+        self.question = new_question
+
 
 
 class Minwon:
@@ -35,7 +35,7 @@ class Minwon:
 @app.route('/webhook', methods=['POST', 'GET'])
 def webhookController():
     req = request.get_json(force=True)
-    Minwon.img_path,res = coreEngine.coreEngine(req,Question)
+    Minwon.img_path,res = coreEngine.coreEngine(req)
     return make_response(json.dumps(res))
 
 
@@ -54,5 +54,4 @@ def show_image(img_path):
 
 
 if __name__ == '__main__':
-    app.run(host='203.253.21.85',port=8080)
-    Question = Question()
+    app.run(host='203.253.21.85',port=8888)
