@@ -5,24 +5,19 @@ def getConnection():
     db_name = "minwon.db"
     return lite.connect(db_name)
 
+
 def getCursor(conn):
     return conn.cursor()
 
 
-
-def create_table():
-    query = "CREATE TABLE IF NOT EXISTS minwon_infomation (id INTEGER PRIMARY_KEY NOT NULL, " \
-            "name VARCHAR(255)"
-    string =''
-    args = ['과세대상', '납부방법', '납세의무자', '과세표준', '신고납부', '과세표준과 세율',
-       '납세의무자, 과세표준 및 세율', '납기', '정의', '세율', '정보']
-
-    for arg in args:
-        string = string + "," + '"' + arg + '"' + " VARCHAR(255)"
-    query = query + string + ")"
-
-
 def selectAllFromTableUsingWhere(table,findVar,data):
+    """
+    select All Values From DB Table Using Where clause
+    :param table: DB table name, type: String
+    :param findVar: want to find column name, type: String
+    :param data: value to find in column, type: String
+    :return:
+    """
     conn = getConnection()
     cs = conn.cursor()
     if str(data)[-1] == ' ':
@@ -41,6 +36,14 @@ def selectAllFromTableUsingWhere(table,findVar,data):
 
 
 def selectThingFromTableUsingWhere(select,table,where,data):
+    """
+    select value from table using where clause
+    :param select: value to find select clause type:String
+    :param table: DB table name, type: String
+    :param where: the name that want to find in column
+    :param data:
+    :return:
+    """
     conn = getConnection()
     cs = conn.cursor()
     if str(data)[-1] == ' ':
@@ -50,6 +53,7 @@ def selectThingFromTableUsingWhere(select,table,where,data):
     else:
         query = "SELECT " + select + " FROM " + table + " WHERE " + where + " = " + "'" + data + "';"
     print("query : ", query)
+
     try:
         cs.execute(query)
         all_rows = cs.fetchall()
@@ -57,12 +61,20 @@ def selectThingFromTableUsingWhere(select,table,where,data):
     finally:
         conn.close()
 
+
 def selectThingFromTable(select,table):
+    """
+    select value from table
+    :param select: value to find in Table, type: String
+    :param table: DB table name,type: String
+    :return: all data which user wanted type: list
+    """
     conn = getConnection()
     cs = conn.cursor()
 
     query = "SELECT " + select + " FROM " + table + " ;"
     print("query : ", query)
+
     try:
         cs.execute(query)
         all_rows = cs.fetchall()
@@ -72,11 +84,16 @@ def selectThingFromTable(select,table):
 
 
 def insertDataToTable(question):
+    """
+    Insert value in Database
+    :param question: data type: String
+    """
     conn = getConnection()
     cs = conn.cursor()
+    query = "INSERT into question_table values (?,?)"
+    print("query : ", query)
+
     try:
-        query = "INSERT into question_table values (?,?)"
-        print("query : ", query)
         cs.execute(query,(0,question))
     finally:
         conn.commit()
@@ -84,10 +101,13 @@ def insertDataToTable(question):
 
 
 def deleteDataFromTable():
+    """
+    Delete Data From Table
+    """
     conn = getConnection()
     cs = conn.cursor()
+    query = "Delete from question_table where id = 0"
     try:
-        query = "Delete from question_table where id = 0"
         cs.execute(query)
         conn.commit()
     except:
