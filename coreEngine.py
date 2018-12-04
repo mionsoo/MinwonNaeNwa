@@ -6,10 +6,24 @@ import dbModule as dB
 
 def makeAnswerForm(type, data_dict=None):
     '''
-
-    :param type:
-    :param data_dict:
-    :return:
+    update answerForm using data_dictionary
+    :param type: type for answerForm
+        "default" : just answer using text "{"answer" : " texts coming "}
+        "introduce" : just answer introducing itself "None"
+        "db" : when answer img file "{"answer":"text coming",
+                                      "name" : "hometax name",
+                                      "category" : "hometax category"
+        "noAnsFAQ" : just answer Can't find anything in FAQ "None"
+        "else" : use this answer when difficult to answer
+    :param data_dict: each types are need different data_dictionary
+        "default" : "{"answer" : " texts coming "}
+        "introduce" : "None"
+        "db" : "{"answer":"text coming",
+               "name" : "hometax name",
+               "category" : "hometax category}"
+        "noAnsFAQ" : "None"
+        "else" : "None
+    :return: answerForm, type: Dictionary
     '''
     if type == 'default':
         return {'fulfillmentText': data_dict["answer"]}
@@ -161,7 +175,7 @@ def makeAnswerForm(type, data_dict=None):
         }
 
 
-def makeCategoriesAndDataListFromDB(datas):
+def makeCategoriesAndDatalistFromDB(datas):
     categories = ['id','name','과세대상', '납부방법', '납세의무자', '과세표준', '신고납부', '과세표준과 세율',
        '납세의무자, 과세표준 및 세율', '납기', '정의', '세율', '정보']
     return [(categories[i], v) for i, v in enumerate(datas[0]) if v != '']
@@ -174,17 +188,17 @@ def toMakeAnswerFromDBdataList(categories):
     info = ''
     category = ''
 
-    for i in categories:
-        if str(i[0]) == "name":
-            name = i[1]
-        if str(i[0]) == "정보":
-            info = i[1]
-        if (str(i[0]) != "id") and (str(i[0]) != "name") and (str(i[0]) != "정보"):
-            if str(i[1])[-3:] == "png":
-                data = i[1]
-                category = i[0]
+    for _category in categories:
+        if str(_category[0]) == "name":
+            name = _category[1]
+        if str(_category[0]) == "정보":
+            info = _category[1]
+        if (str(_category[0]) != "id") and (str(_category[0]) != "name") and (str(_category[0]) != "정보"):
+            if str(_category[1])[-3:] == "png":
+                data = _category[1]
+                category = _category[0]
             else:
-                answer = answer + "*" + str(i[0]) + "*" + "\n" + str(i[1]) + "\n\n"
+                answer = answer + "*" + str(_category[0]) + "*" + "\n" + str(_category[1]) + "\n\n"
 
     return [name,info, data,category,answer]
 
@@ -202,8 +216,7 @@ def find_answerDB(hometax, question):
         # Answer is not in db
         return data_path,makeAnswerForm('default', data_dict={"answer": "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
 
-
-    categories = makeCategoriesAndDataListFromDB(datas)
+    categories = makeCategoriesAndDatalistFromDB(datas)
     values = toMakeAnswerFromDBdataList(categories)
     keys = ["name", "info", "data", "category", "answer"]
     data_dict = {k: v for k, v in zip(keys,values)}
@@ -211,9 +224,6 @@ def find_answerDB(hometax, question):
     data_dict["answer"] = "*" + data_dict["name"] + "*" + " 에 대한 정보는 다음과 같습니다.\n\n" + data_dict["info"] \
                           + "\n\n" + data_dict["answer"] + "\n\n" + " 원하시는 답변이 맞으신가요? :thinking_face:"
 
-    print("data: ",data_dict)
-    print("data2: ",data_dict['data'])
-    print("data3: ", data_dict["data"])
     if len(data_dict["data"]) > 0:
         data_path = 'pic/' + data_dict["data"]
         answerForm = makeAnswerForm("db", data_dict=data_dict)
@@ -246,7 +256,7 @@ def cantFindAnswer():
     return makeAnswerForm('')
 
 
-def get_requestParams(req):
+def getRequestParams(req):
     question = req['queryResult'].get('queryText')
     minwon_info = req['queryResult']['parameters'].get('minwon-infomation')
     hometax = req['queryResult']['parameters'].get('hometax')
@@ -263,9 +273,8 @@ def coreEngine(req):
     answerForm = {}
     before_question = ' '
 
-    print(req)
     # Parsing
-    question, minwon_info, hometax = get_requestParams(req)
+    question, minwon_info, hometax = getRequestParams(req)
     intent = get_intent(req)
     print("question : ",question)
     print("minwon_info : ",minwon_info)
@@ -274,6 +283,7 @@ def coreEngine(req):
 
     # split intent follow string -> "intent - follow up type"
     intent_followup = intent.split(" - ")
+    # check intent types to answering
     if intent_followup[0] == "hometax_info":
         try:
             intent_followup[1]
@@ -281,10 +291,12 @@ def coreEngine(req):
             if hometax == "등록면허세":
                 answer = makeAnswerForm("default", data_dict={"answer":"등록면허세는 *등록분* 과 *면허분* 으로 나뉘어집니다.\n 어떤것으로 알려드릴께요?"})
             else:
+                # find answer in DB
                 data, answer = find_answerDB(hometax, question)
         else:
             if intent_followup[1] == "no":
                 try:
+                    # check last question in db
                     data = dB.selectAllFromTableUsingWhere("question_table", "id", 0)
                     before_question = data[len(data)-1][1]
                 except IndexError:
@@ -295,13 +307,13 @@ def coreEngine(req):
                     if before_question == -1:
                         answer = cantFindAnswer()
                     elif before_question != ' ':
-                        print(before_question)
+                        # find answer with before turns question
                         answer = findAnswerFromCrawler(before_question)
                     else:
                         answer = findAnswerFromCrawler(question)
 
                 dB.deleteDataFromTable()
-                # answer = makeAnswerForm('default', data_dict={"answer": "제공해드린 답변이 도움이 되었나요? :thinking_face:"})
+
 
     elif intent_followup[0] == "introduce":
         answer = introduce_myself()
@@ -310,9 +322,11 @@ def coreEngine(req):
     else:
         answer = cantFindAnswer()
 
+    # Using for check logs easily in server
     print("\n\n")
+    # update answerForm
     answerForm.update(answer)
-    return data,answerForm
+    return data, answerForm
 
 
 if __name__ == '__main__':
