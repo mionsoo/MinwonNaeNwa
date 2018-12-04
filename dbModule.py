@@ -22,7 +22,7 @@ def create_table():
     query = query + string + ")"
 
 
-def selectNameFromTable(table,findVar,data):
+def selectAllFromTableUsingWhere(table,findVar,data):
     conn = getConnection()
     cs = conn.cursor()
     if str(data)[-1] == ' ':
@@ -32,6 +32,37 @@ def selectNameFromTable(table,findVar,data):
     else:
         query = "SELECT * FROM " + table + " WHERE " + findVar + " = " + "'" + data + "';"
     print("query : ",query)
+    try:
+        cs.execute(query)
+        all_rows = cs.fetchall()
+        return [data for data in all_rows]
+    finally:
+        conn.close()
+
+
+def selectThingFromTableUsingWhere(select,table,where,data):
+    conn = getConnection()
+    cs = conn.cursor()
+    if str(data)[-1] == ' ':
+        query = "SELECT " + select + " FROM " + table + " WHERE " + where + " = " + "'" + data[:-1] + "';"
+    elif type(data) == int:
+        query = "SELECT " + select + " FROM " + table + " WHERE " + where + " = " + str(data) + ";"
+    else:
+        query = "SELECT " + select + " FROM " + table + " WHERE " + where + " = " + "'" + data + "';"
+    print("query : ", query)
+    try:
+        cs.execute(query)
+        all_rows = cs.fetchall()
+        return [data for data in all_rows]
+    finally:
+        conn.close()
+
+def selectThingFromTable(select,table):
+    conn = getConnection()
+    cs = conn.cursor()
+
+    query = "SELECT " + select + " FROM " + table + " ;"
+    print("query : ", query)
     try:
         cs.execute(query)
         all_rows = cs.fetchall()

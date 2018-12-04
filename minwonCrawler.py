@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup as bs
+from bs4 import SoupStrainer
 import urllib.request as ul
 import requests
 import re
@@ -84,7 +85,6 @@ def get_faqCategory(root_url):
     return pageDict
 
 
-
 def crawling_AnswerByQuestion(question):
     '''
     make searching func at Faq using question
@@ -95,9 +95,6 @@ def crawling_AnswerByQuestion(question):
     #ToDo: need to speed up more
     # search by question
     crawler_startTimevect = time.time()
-
-    print("asdf",question)
-    print("asd",type(question))
     soup = get_soup(faq_url + ul.quote(question, encoding='euc-kr'))
     faq_page = soup.find("ul", {"class": "faq"})
 
@@ -113,7 +110,7 @@ def crawling_AnswerByQuestion(question):
     faq_question = soup.find("dl", {"class": "w_view"}).find("strong").get_text()
     answer = soup.find("dl", {"class": "w_view"}).find("pre").get_text()
     print("Finished time: %0.2f Minutes" % ((time.time() - crawler_startTimevect) / 60))
-    return "질문 검색결과와 유사한 FAQ :\n" + faq_question + "\n\nFAQ답변 :\n" + answer
+    return "질문 검색결과와 유사한 FAQ :\n *" + faq_question + "* \n\nFAQ답변 :\n *" + answer+" * "
 
 
 if __name__ == '__main__':

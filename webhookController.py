@@ -1,30 +1,9 @@
-from flask import Flask, jsonify, make_response, request, send_file
+from flask import Flask, make_response, request, send_file
 import json
 import io
 import coreEngine
 
 app = Flask(__name__)
-
-class Question:
-    def __init__(self):
-        self.question = ''
-        self.beforeQuestion = ''
-
-    def setInitial(self, _question):
-        self.question = _question
-
-    def setBeforeQuestionInitial(self):
-        self.beforeQuestion = ''
-
-    @property
-    def questionValue(self):
-        return self.question
-
-    @questionValue.setter
-    def questionValue(self, new_question):
-        self.beforeQuestion = "asd"
-        self.question = new_question
-
 
 
 class Minwon:

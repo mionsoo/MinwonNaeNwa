@@ -57,10 +57,10 @@ def makeAnswerForm(type, data_dict=None):
                  "card": {
                      "title": data_dict["name"],
                      "subtitle": data_dict["answer"],
-                     "imageUri": "http://203.253.21.85:8080/info.png",
+                     "imageUri": "http://203.253.21.85:8888/info.png",
                      "buttons": [{
                          "text": data_dict["name"] + " " + data_dict["category"] + " link",
-                         "postback": "http://203.253.21.85:8080/info.png"
+                         "postback": "http://203.253.21.85:8888/info.png"
                      }
                      ]
                  }
@@ -70,8 +70,8 @@ def makeAnswerForm(type, data_dict=None):
                  "text": data_dict["answer"],
                  "attachments": [
                      {
-                         "text": "*" + data_dict["category"] + "*",
-                         "image_url": "http://203.253.21.85:8080/info.png",
+                         "text": "*"+data_dict["name"]+" " + data_dict["category"] + "*",
+                         "image_url": "http://203.253.21.85:8888/info.png",
                          "color": "#764FA5"
                      }
                  ]
@@ -189,14 +189,19 @@ def toMakeAnswerFromDBdataList(categories):
     return [name,info, data,category,answer]
 
 
-def find_answerDB(hometax,question):
+def find_answerDB(hometax, question):
     data_path = ''
-    datas = dB.selectNameFromTable("minwon_infomation","name",hometax)
     dB.insertDataToTable(question)
+    if hometax == "등록분":
+        hometax = "등록면허세(등록분)"
+    elif hometax == "면허분":
+        hometax = "등록면허세(면허분)"
+
+    datas = dB.selectAllFromTableUsingWhere("minwon_information","name",hometax)
     if datas == []:
         # Answer is not in db
-
         return data_path,makeAnswerForm('default', data_dict={"answer": "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
+
 
     categories = makeCategoriesAndDataListFromDB(datas)
     values = toMakeAnswerFromDBdataList(categories)
@@ -206,6 +211,9 @@ def find_answerDB(hometax,question):
     data_dict["answer"] = "*" + data_dict["name"] + "*" + " 에 대한 정보는 다음과 같습니다.\n\n" + data_dict["info"] \
                           + "\n\n" + data_dict["answer"] + "\n\n" + " 원하시는 답변이 맞으신가요? :thinking_face:"
 
+    print("data: ",data_dict)
+    print("data2: ",data_dict['data'])
+    print("data3: ", data_dict["data"])
     if len(data_dict["data"]) > 0:
         data_path = 'pic/' + data_dict["data"]
         answerForm = makeAnswerForm("db", data_dict=data_dict)
@@ -226,6 +234,12 @@ def findAnswerFromCrawler(question):
     else:
         answer = answer + "\n\n 제공해드린 답변이 도움이 되었나요? :thinking_face:\n원치 않는 답변이라면 *\"아니야\"* 라고 답변해주세요"
         return {'fulfillmentText': answer}
+
+
+def getKindsOfHometax():
+    datas = dB.selectThingFromTable("name","minwon_information")
+    string = "".join(str(i[0]) + ', ' for i in datas if i[0] != 'name')
+    return makeAnswerForm("default",data_dict={"answer":"지방세 종류에는 *"+string.strip(", ")+"* 가 있습니다."})
 
 
 def cantFindAnswer():
@@ -249,7 +263,7 @@ def coreEngine(req):
     answerForm = {}
     before_question = ' '
 
-
+    print(req)
     # Parsing
     question, minwon_info, hometax = get_requestParams(req)
     intent = get_intent(req)
@@ -264,11 +278,14 @@ def coreEngine(req):
         try:
             intent_followup[1]
         except:
-            data, answer = find_answerDB(hometax, question)
+            if hometax == "등록면허세":
+                answer = makeAnswerForm("default", data_dict={"answer":"등록면허세는 *등록분* 과 *면허분* 으로 나뉘어집니다.\n 어떤것으로 알려드릴께요?"})
+            else:
+                data, answer = find_answerDB(hometax, question)
         else:
             if intent_followup[1] == "no":
                 try:
-                    data = dB.selectNameFromTable("question_table", "id", 0)
+                    data = dB.selectAllFromTableUsingWhere("question_table", "id", 0)
                     before_question = data[len(data)-1][1]
                 except IndexError:
                     before_question = -1
@@ -288,9 +305,12 @@ def coreEngine(req):
 
     elif intent_followup[0] == "introduce":
         answer = introduce_myself()
+    elif intent_followup[0] == "kindsOfHometax":
+        answer = getKindsOfHometax()
     else:
         answer = cantFindAnswer()
 
+    print("\n\n")
     answerForm.update(answer)
     return data,answerForm
 
