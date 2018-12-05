@@ -116,6 +116,24 @@ def deleteDataFromTable():
         conn.close()
 
 
+def getColumnName():
+    """
+    get table info
+    :return: all table info type: Tuple
+    """
+    conn = getConnection()
+    cs = conn.cursor()
+
+    query = "pragma table_info(minwon_info)"
+    print("query : ", query)
+
+    try:
+        cs.execute(query)
+        all_rows = cs.fetchall()
+        return [data for data in all_rows]
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     pass
