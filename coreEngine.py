@@ -176,9 +176,11 @@ def makeAnswerForm(type, data_dict=None):
 
 
 def makeCategoriesAndDatalistFromDB(datas):
-    categories = ['id','name','과세대상', '납부방법', '납세의무자', '과세표준', '신고납부', '과세표준과 세율',
-       '납세의무자, 과세표준 및 세율', '납기', '정의', '세율', '정보']
-    return [(categories[i], v) for i, v in enumerate(datas[0]) if v != '']
+    categories = dB.getColumnName()
+    categories = [category[1] for category in categories]
+    # categories = ['id','name','과세대상', '납부방법', '납세의무자', '과세표준', '신고납부', '과세표준과 세율',
+    #    '납세의무자, 과세표준 및 세율', '납기', '정의', '세율', '정보']
+    return [(categories[i], v) for i, v in enumerate(datas[0]) if v != '' if v is not None]
 
 
 def toMakeAnswerFromDBdataList(categories):
@@ -207,11 +209,11 @@ def find_answerDB(hometax, question):
     data_path = ''
     dB.insertDataToTable(question)
     if hometax == "등록분":
-        hometax = "등록면허세(등록분)"
+        hometax = "등록면허세(등록)"
     elif hometax == "면허분":
-        hometax = "등록면허세(면허분)"
+        hometax = "등록면허세(면허)"
 
-    datas = dB.selectAllFromTableUsingWhere("minwon_information","name",hometax)
+    datas = dB.selectAllFromTableUsingWhere("minwon_info","name",hometax)
     if datas == []:
         # Answer is not in db
         return data_path,makeAnswerForm('default', data_dict={"answer": "음.. 저에게 해당 질문에 대한 정보가 없네요..:thinking_face: \n검색을 그만 둘까요?\n\n 계속하기 원하시면 *\"아니 / 계속 검색해줘 \"*\n그만 두기 원하시면 *\"그만 / 그만하자 /그만둘래\"* 라고 입력해 주세요.})"})
@@ -220,6 +222,7 @@ def find_answerDB(hometax, question):
     values = toMakeAnswerFromDBdataList(categories)
     keys = ["name", "info", "data", "category", "answer"]
     data_dict = {k: v for k, v in zip(keys,values)}
+    print(data_dict)
 
     data_dict["answer"] = "*" + data_dict["name"] + "*" + " 에 대한 정보는 다음과 같습니다.\n\n" + data_dict["info"] \
                           + "\n\n" + data_dict["answer"] + "\n\n" + " 원하시는 답변이 맞으신가요? :thinking_face:"
@@ -247,7 +250,7 @@ def findAnswerFromCrawler(question):
 
 
 def getKindsOfHometax():
-    datas = dB.selectThingFromTable("name","minwon_information")
+    datas = dB.selectThingFromTable("name","minwon_info")
     string = "".join(str(i[0]) + ', ' for i in datas if i[0] != 'name')
     return makeAnswerForm("default",data_dict={"answer":"지방세 종류에는 *"+string.strip(", ")+"* 가 있습니다."})
 
